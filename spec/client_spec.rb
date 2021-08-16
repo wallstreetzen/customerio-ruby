@@ -169,9 +169,64 @@ describe Customerio::Client do
       })
     end
 
-    it "requires an id attribute" do
+    it "requires an id attribute when identifier is id" do
+      client = Customerio::Client.new(site_id, api_key, identifier: :id)
+
       lambda { client.identify(email: "customer@example.com") }.should raise_error(Customerio::Client::MissingIdAttributeError)
       lambda { client.identify(id: "") }.should raise_error(Customerio::Client::MissingIdAttributeError)
+    end
+
+    it "requires an email attribute when identifier is email" do
+      client = Customerio::Client.new(site_id, api_key, identifier: :email)
+
+      lambda { client.identify(email: "") }.should raise_error(Customerio::Client::MissingIdAttributeError)
+      lambda { client.identify(id: 1) }.should raise_error(Customerio::Client::MissingIdAttributeError)
+    end
+
+    it "accepts id attribute when identifier is id or email" do
+      client = Customerio::Client.new(site_id, api_key, identifier: :id_or_email)
+
+      stub_request(:put, api_uri('/api/v1/customers/1')).with(
+        body: {
+          id: 1,
+        }).to_return(status: 200, body: "", headers: {})
+
+      expect { client.identify(id: 1) }.not_to raise_error
+    end
+
+    it "accepts email attribute when identifier is id or email" do
+      client = Customerio::Client.new(site_id, api_key, identifier: :id_or_email)
+
+      stub_request(:put, api_uri('/api/v1/customers/customer@example.com')).with(
+        body: {
+          email: "customer@example.com",
+        }).to_return(status: 200, body: "", headers: {})
+
+      expect { client.identify(email: "customer@example.com") }.not_to raise_error
+    end
+
+    it "accepts cio_id attribute when identifier is id or email" do
+      client = Customerio::Client.new(site_id, api_key, identifier: :id_or_email)
+
+      stub_request(:put, api_uri('/api/v1/customers/cio_c11111')).with(
+        body: {
+          cio_id: "c11111",
+        }).to_return(status: 200, body: "", headers: {})
+
+      expect { client.identify(cio_id: "c11111") }.not_to raise_error
+    end
+
+    it "accepts multiple attributes when identifier is id or email" do
+      client = Customerio::Client.new(site_id, api_key, identifier: :id_or_email)
+
+      stub_request(:put, api_uri('/api/v1/customers/cio_c11111')).with(
+        body: {
+          cio_id: "c11111",
+          email: "customer@example.com",
+          id: 1,
+        }).to_return(status: 200, body: "", headers: {})
+
+      expect { client.identify(cio_id: "c11111", email: "customer@example.com", id: 1) }.not_to raise_error
     end
 
     it 'should not raise errors when attribute keys are strings' do

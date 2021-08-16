@@ -17,8 +17,8 @@ module Customerio
       options[:region] = Customerio::Regions::US if options[:region].nil?
       raise "region must be an instance of Customerio::Regions::Region" unless options[:region].is_a?(Customerio::Regions::Region)
 
-      @identifier = :id if options[:identifier].nil?
-      raise "identifier must be one of #{IDENTIFIERS.map{|s| ":#{s}"}.join(", ")}" unless IDENTIFIERS.include?(options[:identifier])
+      @identifier = options.fetch(:identifier, :id)
+      raise "identifier must be one of #{IDENTIFIERS.map{|s| ":#{s}"}.join(", ")}" unless IDENTIFIERS.include?(@identifier)
 
       options[:url] = options[:region].track_url if options[:url].nil? || options[:url].empty?
       @client = Customerio::BaseClient.new({ site_id: site_id, api_key: api_key }, options)
