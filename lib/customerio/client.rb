@@ -8,12 +8,18 @@ module Customerio
 
     VALID_PUSH_EVENTS = [PUSH_OPENED, PUSH_CONVERTED, PUSH_DELIVERED]
 
+    IDENTIFIERS = [:id, :email, :id_or_email].freeze
+
     class MissingIdAttributeError < RuntimeError; end
     class ParamError < RuntimeError; end
 
     def initialize(site_id, api_key, options = {})
       options[:region] = Customerio::Regions::US if options[:region].nil?
       raise "region must be an instance of Customerio::Regions::Region" unless options[:region].is_a?(Customerio::Regions::Region)
+
+      options[:identifier] = :id if options[:identifier].nil?
+      raise "identifier must be one of #{IDENTIFIERS.map{|s| ":#{s}"}.join(", ")}" unless IDENTIFIERS.include?(options[:identifier])
+
 
       options[:url] = options[:region].track_url if options[:url].nil? || options[:url].empty?
       @client = Customerio::BaseClient.new({ site_id: site_id, api_key: api_key }, options)
@@ -124,7 +130,8 @@ module Customerio
 
     def create_or_update(attributes = {})
       attributes = Hash[attributes.map { |(k,v)| [ k.to_sym, v ] }]
-      identifer = is_empty?(attributes[:cio_id]) ? attributes[:id] : "cio_#{attributes[:cio_id]}"
+
+      identifer = get_identifier(attributes)
       raise MissingIdAttributeError.new("Must provide a customer id") if is_empty?(identifer)
 
       url = customer_path(identifer)
@@ -162,6 +169,25 @@ module Customerio
 
     def is_empty?(val)
       val.nil? || (val.is_a?(String) && val.strip == "")
+    end
+
+    def get_identifier(attributes = {})
+      attributes = Hash[attributes.map { |(k,v)| [ k.to_sym, v ] }]
+
+      case options[:identifier]
+      when :id_or_email
+        if !is_empty?(attributes[:cio_id])
+          "cio_#{attributes[:cio_id]}"
+        else
+          if !is_empty?(attributes[:id])
+            attributes[:id]
+          elsif !is_empty?(attributes[:email])
+            attributes[:email]
+          end
+        end
+      else
+        attributes[options[:identifier]]
+      end
     end
   end
 end
