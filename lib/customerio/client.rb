@@ -17,9 +17,8 @@ module Customerio
       options[:region] = Customerio::Regions::US if options[:region].nil?
       raise "region must be an instance of Customerio::Regions::Region" unless options[:region].is_a?(Customerio::Regions::Region)
 
-      options[:identifier] = :id if options[:identifier].nil?
+      @identifier = :id if options[:identifier].nil?
       raise "identifier must be one of #{IDENTIFIERS.map{|s| ":#{s}"}.join(", ")}" unless IDENTIFIERS.include?(options[:identifier])
-
 
       options[:url] = options[:region].track_url if options[:url].nil? || options[:url].empty?
       @client = Customerio::BaseClient.new({ site_id: site_id, api_key: api_key }, options)
@@ -131,10 +130,10 @@ module Customerio
     def create_or_update(attributes = {})
       attributes = Hash[attributes.map { |(k,v)| [ k.to_sym, v ] }]
 
-      identifer = get_identifier(attributes)
-      raise MissingIdAttributeError.new("Must provide a customer id") if is_empty?(identifer)
+      identifier = get_identifier(attributes)
+      raise MissingIdAttributeError.new("Must provide a customer id") if is_empty?(identifier)
 
-      url = customer_path(identifer)
+      url = customer_path(identifier)
       @client.request_and_verify_response(:put, url, attributes)
     end
 
@@ -174,7 +173,7 @@ module Customerio
     def get_identifier(attributes = {})
       attributes = Hash[attributes.map { |(k,v)| [ k.to_sym, v ] }]
 
-      case options[:identifier]
+      case @identifier
       when :id_or_email
         if !is_empty?(attributes[:cio_id])
           "cio_#{attributes[:cio_id]}"
@@ -186,7 +185,7 @@ module Customerio
           end
         end
       else
-        attributes[options[:identifier]]
+        attributes[@identifier]
       end
     end
   end
